@@ -1,4 +1,14 @@
 import bitarray
+def primes(n):
+    """ Returns  a list of primes < n """
+    sieve = bitarray.bitarray(n)
+    sieve.setall(True)
+    sieve[4::2] = False
+    sieve[0:2:] = False
+    for i in range(3,int(n**0.5)+1,2):
+        if sieve[i]:
+            sieve[i*i::2*i] = False
+    return sieve, [2] + [i for i in range(3,n,2) if sieve[i]]
 def primesieve(n):
     sieve = bitarray.bitarray((n // 2))
     sieve.setall(True)
@@ -19,14 +29,14 @@ def stack(seg: int, seg_size: int,pm: object, fuprime: set, primebitarray: bitar
     if seg == 0:
         f_stack = bitarray.bitarray(seg_size)
         f_stack.setall(False)
-        f_stack[5:: 2] = True
+        f_stack[5::2] = True
     else:
         f_stack = bitarray.bitarray(seg_size)
         f_stack.setall(False)
         f_stack[0::2] = True
     for j in pm:
         f_stack = f_stack << j
-        p_stack = f_stack ^ primebitarray[seg_size * seg, (seg+1) * seg_size]# make these the same size. XOr also and.
+        p_stack = f_stack ^ primebitarray[seg_size * seg: (seg+1) * seg_size]# make these the same size. XOr also and.
         f_stack = f_stack & p_stack
         yield f_stack
 def prime_gen(prime:list):
@@ -40,18 +50,16 @@ def primetob(primes: list):
 
 
 def main():
-    limit = 10 ** 5
-    primebit, fuprime = primesieve(limit)
-    seg_size = 10 ** 4
+    limit = 10 ** 9
+    primebit, fuprime = primes(limit)
+    seg_size = 10 ** 8
     prime = split_list(fuprime)
     prime = difference(prime)
     for i in range(0, (limit // seg_size)):
         pm = prime_gen(prime)
         stacks = stack(i, seg_size, pm, fuprime, primebit)
         for sets in stacks:
-            if sets.difference(fuprime) == set():
+            if sets.count(True) == 0 :
                 break
             pass
 main()
-
-
