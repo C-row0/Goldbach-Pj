@@ -1,0 +1,105 @@
+import numpy as np
+import math
+from matplotlib import pyplot as plt
+import scipy
+
+def WHT(x):
+    x = np.array(x)
+    if (len(x.shape) < 2):  # make sure x is 1D array
+        if (len(x) > 3):  # accept x of min length of 4 elements (M=2)
+            # check length of signal, adjust to 2**m
+            n = len(x)
+            M = math.trunc(math.log(n, 2))
+            x = x[0:2 ** M]
+            h2 = np.array([[1, 1], [1, -1]])
+            for i in range(M - 1):
+                if (i == 0):
+                    H = np.kron(h2, h2)
+                else:
+                    H = np.kron(H, h2)
+
+            return (np.dot(H, x) / 2. ** M, x, M)
+        else:
+            print("HWT(x): Array too short!")
+            raise SystemExit
+    else:
+        print("HWT(x): 1D array expected!")
+        raise SystemExit
+def xsequences(x):
+    x=np.array(x)   # X(t) or x(t)
+    if(len(x.shape)<2): # make sure x is 1D array
+        if(len(x)>3):   # accept x of min length of 4 elements (M=2)
+            # check length of signal, adjust to 2**M if needed
+            n=len(x)
+            M=math.trunc(math.log(n,2))
+            x=x[0:2**M]
+            a=(2**(M/2))  # a number of adjacent sequences/blocks
+            b=2**M/a      # a number of elements in each sequence
+            y=np.reshape(x,(a,b))
+            #print(y)
+            return (y,x,a,b,M)
+        else:
+            print("xsequences(x): Array too short!")
+            raise SystemExit
+    else:
+        print("xsequences(x): 1D array expected!")
+        raise SystemExit
+(xseq,xt,a,b,M) = xsequences([-1,1,-1,1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1-1,1,-1,1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1-1,1,-1,1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1-1,1,-1,1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1-1,1,-1,1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1-1,1,-1,1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1-1,1,-1,1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1-1,1,-1,1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1-1,1,-1,1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1])
+
+def tstat(x, a, b, M):
+    # specify the probability of occurrence of the digit "1"
+    p=0.5
+    print("Computation of WHTs...")
+    for j in range(a):
+        hwt, _, _ = WHT(x[j])
+        if(j==0):
+            y=hwt
+        else:
+            y=np.vstack((y,hwt))   # WHT for xseq
+    print("  ...completed")
+    print("Computation of t-statistics..."),
+    t=[];
+    for j in range(a):     # over sequences/blocks (rows)
+        for i in range(b): # over sequence's elements (columns)
+            if(i==0):
+                if(p==0.5):
+                    m0j=0
+                else:
+                    m0j=(2.**M/2.)*(1.-2.*p)
+                sig0j=math.sqrt((2**M/2)*p*(1.-p))
+                w0j=y[j][i]
+                t0j=(w0j-m0j)/sig0j
+                t.append(t0j)
+            else:
+                sigij=math.sqrt((2.**((M+2.)/2.))*p*(1.-p))
+                wij=y[j][i]
+                tij=wij/sigij
+                t.append(tij)
+    t=np.array(t)
+    print("completed")
+    print("Computation of p-values..."),
+    # standardised t-statistics; t_{i,j} ~ N(0,1)
+    t=(t-np.mean(t))/(np.std(t))
+    # p-values = 1-[1/sqrt(2*pi)*integral[exp(-x**2/2),x=-inf..t]]
+    P=1-scipy.special.ndtr(t)
+    print("completed\n")
+    return(t,P,y)
+
+
+
+(t, P, xseqWHT) = tstat(xseq, a, b, M)
+
+print("t =")
+print(t)
+print("\np-values =")
+print(P)
+print("\nw =")
+print(xseqWHT)
+
+# display WHTs for "a" sequences
+plt.imshow(xseqWHT, interpolation='nearest', cmap='PuOr')
+plt.colorbar()
+plt.xlabel("Sequence's Elements");
+plt.ylabel("Sequence Number")
+plt.title("Walsh-Hadamard Transforms")
+plt.show()
